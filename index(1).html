@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1128">
+<title>กระทงคู่ออนไลน์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chonburi&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --night: #0a1128;
+  --panel: #101a38;
+  --field: #0a1330;
+  --ink: #eaeefa;
+  --mute: #9aa6c8;
+  --flame: #ffb347;
+  --flame-ink: #2b1800;
+  --line: rgba(160, 182, 235, 0.18);
+  --good: #84e3b4;
+  --bad: #ff9a9a;
+  --font-display: "Chonburi", "Noto Serif Thai", serif;
+  --font-body: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+.river { position: relative; height: clamp(320px, 58vw, 480px); overflow: hidden; background: var(--night); }
+.river canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
+.river-in {
+  position: relative; max-width: 880px; margin: 0 auto; padding-top: max(18px, env(safe-area-inset-top, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.river h1 { font-family: var(--font-display); font-size: clamp(26px, 5.2vw, 42px); line-height: 1.25; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55); }
+.river-in p { margin: 4px 0 0; max-width: 36ch; font-size: 14px; color: #c3cdea; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); }
+.pick {
+  position: absolute; bottom: 10px; margin: 0;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 420px; padding: 9px 14px; border-radius: 10px;
+  background: rgba(6, 11, 30, 0.78); border: 1px solid var(--line);
+  pointer-events: none;
+}
+.pick .nm { font-weight: 600; }
+.pick .wish { margin-top: 2px; font-size: 14px; color: var(--mute); overflow-wrap: anywhere; }
+
+.wrap {
+  max-width: 880px; margin: 0 auto; display: grid; gap: 36px;
+  padding-block: 22px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap h2 { font-family: var(--font-display); font-size: 21px; }
+.launch { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; }
+.launch form { display: grid; gap: 16px; margin: 0; }
+.ff { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 16px; }
+.ff:disabled { opacity: 0.55; }
+.pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
+.pair .amp { padding-bottom: 14px; color: var(--flame); display: flex; }
+.fld { display: grid; gap: 6px; min-width: 0; }
+.fld label, .hues-label { font-size: 14px; color: var(--mute); }
+input[type="text"] {
+  width: 100%; min-width: 0; font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+input[type="text"]::placeholder { color: #66729a; }
+input[type="text"]:focus-visible, button:focus-visible, .sw:has(input:focus-visible) { outline: 2px solid var(--flame); outline-offset: 2px; }
+.hues { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.sw { position: relative; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; background: hsl(var(--h) 82% 70%); box-shadow: 0 0 14px hsl(var(--h) 90% 60% / 0.45); }
+.sw:has(input:checked) { outline: 2px solid var(--ink); outline-offset: 3px; }
+.act { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+button { font: inherit; cursor: pointer; }
+.go { background: var(--flame); color: var(--flame-ink); border: 0; border-radius: 10px; padding: 13px 26px; font-weight: 600; }
+.go:hover:not(:disabled) { filter: brightness(1.08); }
+.go:disabled { opacity: 0.6; cursor: default; }
+#msg { margin: 0; font-size: 14px; min-height: 1.4em; flex: 1 1 200px; }
+#msg.ok { color: var(--good); }
+#msg.bad { color: var(--bad); }
+.gate { margin: 0; font-size: 14px; color: #ffd9a0; }
+
+.listhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+#count { color: var(--mute); font-size: 14px; font-variant-numeric: tabular-nums; }
+.list { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.row.empty { display: block; color: var(--mute); }
+.dot { width: 10px; height: 10px; margin-top: 8px; border-radius: 50%; background: hsl(var(--h) 85% 70%); box-shadow: 0 0 12px hsl(var(--h) 90% 62%); }
+.names { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+.names .heart { display: inline-flex; color: hsl(var(--h) 85% 72%); }
+.badge { font-size: 12px; font-weight: 500; color: var(--flame); border: 1px solid rgba(255, 179, 71, 0.45); border-radius: 999px; padding: 0 8px; }
+.wish { margin: 2px 0 0; font-size: 14px; color: var(--mute); overflow-wrap: anywhere; }
+.side { display: grid; justify-items: end; gap: 6px; font-size: 12px; color: var(--mute); text-align: right; min-width: 0; }
+.rm { background: none; border: 1px solid var(--line); color: var(--mute); border-radius: 8px; padding: 3px 10px; font-size: 12px; }
+.rm.sure { border-color: var(--bad); color: var(--bad); }
+.more { margin-top: 14px; background: none; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 18px; }
+.foot { margin: 0; font-size: 13px; color: var(--mute); }
+
+@media (max-width: 480px) {
+  .pair { grid-template-columns: 1fr; }
+  .pair .amp { display: none; }
+  .launch { padding: 16px; }
+  .row { grid-template-columns: auto 1fr; }
+  .side { grid-column: 2; justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start; align-items: center; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<header class="river" id="river">
+  <canvas id="cv" role="img" aria-label="แม่น้ำยามค่ำคืนที่มีกระทงของแต่ละคู่ลอยอยู่ แตะกระทงเพื่ออ่านคำอธิษฐาน"></canvas>
+  <div class="river-in">
+    <h1>กระทงคู่ออนไลน์</h1>
+    <p>เขียนชื่อสองคนลงในกระทง แล้วปล่อยลงแม่น้ำสายเดียวกับเพื่อน ๆ</p>
+  </div>
+  <p class="pick" id="pick" hidden></p>
+</header>
+
+<main class="wrap">
+  <section class="launch" aria-labelledby="h-launch">
+    <h2 id="h-launch">ลอยกระทงของคุณ</h2>
+    <p class="gate" id="gate">กำลังเชื่อมต่อแม่น้ำ...</p>
+    <form id="f" novalidate>
+      <fieldset class="ff" id="ff" disabled>
+        <div class="pair">
+          <div class="fld">
+            <label for="n1">ชื่อคนที่ 1</label>
+            <input type="text" id="n1" maxlength="20" autocomplete="off" placeholder="ชื่อเล่น">
+          </div>
+          <span class="amp" aria-hidden="true"><svg viewBox="0 0 24 22" width="20" height="18"><path d="M12 21C5 15 1 11.5 1 7.2 1 4 3.5 1.8 6.3 1.8c2.3 0 4.2 1.3 5.7 3.5 1.5-2.2 3.4-3.5 5.7-3.5C20.5 1.8 23 4 23 7.2 23 11.5 19 15 12 21z" fill="currentColor"/></svg></span>
+          <div class="fld">
+            <label for="n2">ชื่อคนที่ 2</label>
+            <input type="text" id="n2" maxlength="20" autocomplete="off" placeholder="ชื่อเล่น">
+          </div>
+        </div>
+        <div class="fld">
+          <label for="wish">คำอธิษฐาน (ไม่ใส่ก็ได้)</label>
+          <input type="text" id="wish" maxlength="60" autocomplete="off" placeholder="ขอให้เราสองคนอยู่ด้วยกันไปนาน ๆ">
+        </div>
+        <div>
+          <span class="hues-label" id="hl">สีกระทง</span>
+          <div class="hues" role="radiogroup" aria-labelledby="hl" id="hues"></div>
+        </div>
+        <div class="act">
+          <button type="submit" class="go" id="go">ลอยกระทง</button>
+          <p id="msg" role="status"></p>
+        </div>
+      </fieldset>
+    </form>
+  </section>
+
+  <section aria-labelledby="h-list">
+    <div class="listhead">
+      <h2 id="h-list">กระทงในแม่น้ำ</h2>
+      <span id="count">0 ใบ</span>
+    </div>
+    <ol class="list" id="list"></ol>
+    <button type="button" class="more" id="more" hidden></button>
+  </section>
+
+  <p class="foot" id="foot">แต่ละคนลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง ทุกคนที่เปิดหน้านี้เห็นแม่น้ำเดียวกัน</p>
+</main>
+
+<script type="module">
+/* =====================================================================
+   ตั้งค่า Firebase  (ดูขั้นตอนใน README.md)
+   ใส่ค่าจาก Firebase Console > Project settings > Your apps > Web app
+   ถ้ายังไม่ใส่ หน้านี้จะทำงานใน "โหมดทดลอง" เห็นเฉพาะในเบราว์เซอร์ของตัวเอง
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAuZ-ifrL0intTwCuHoRCQ3VP4ayU5n1Xo",
+  authDomain: "keoluvkwan.firebaseapp.com",
+  projectId: "keoluvkwan",
+  storageBucket: "keoluvkwan.firebasestorage.app",
+  messagingSenderId: "89636496335",
+  appId: "1:89636496335:web:9256f4c2f5c2e30fede8ba"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+/* ---------- backend adapter: Firebase หรือ โหมดทดลอง (localStorage) ---------- */
+const COLL = 'krathongs';
+const configured = FIREBASE_CONFIG.apiKey && !/^YOUR_/.test(FIREBASE_CONFIG.apiKey);
+
+function localBackend() {
+  const LS_UID = 'krathong.uid', LS_DATA = 'krathong.local';
+  let uid = null;
+  try { uid = localStorage.getItem(LS_UID); if (!uid) { uid = 'local-' + Math.random().toString(36).slice(2, 12); localStorage.setItem(LS_UID, uid); } }
+  catch (e) { uid = 'local-' + Math.random().toString(36).slice(2, 12); }
+  const read = () => { try { return JSON.parse(localStorage.getItem(LS_DATA)) || {}; } catch (e) { return {}; } };
+  const snap = () => { const m = read(); return { docs: Object.keys(m).map(k => ({ id: k, data: () => ({ items: m[k] }) })) }; };
+  return {
+    mode: 'local', uid,
+    note: 'โหมดทดลอง: ยังไม่ได้ตั้งค่า Firebase จึงเห็นกระทงเฉพาะในเครื่องนี้ (ดู README.md เพื่อเปิดใช้ร่วมกับทุกคน)',
+    subscribe(cb) {
+      cb(snap());
+      window.addEventListener('storage', () => cb(snap()));
+      return () => {};
+    },
+    async save(items) {
+      const m = read(); m[uid] = items;
+      try { localStorage.setItem(LS_DATA, JSON.stringify(m)); } catch (e) { const er = new Error('quota'); er.code = 'quota_exceeded'; throw er; }
+      this._cb && this._cb(snap());
+    }
+  };
+}
+
+async function setupBackend() {
+  if (!configured) {
+    const b = localBackend();
+    const sub = b.subscribe;
+    b.subscribe = function (cb) { b._cb = cb; return sub.call(b, cb); };
+    return b;
+  }
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const cred = await signInAnonymously(auth);
+  const db = getFirestore(app);
+  const uid = cred.user.uid;
+  return {
+    mode: 'firebase', uid, note: '',
+    subscribe(cb, errCb) { return onSnapshot(collection(db, COLL), cb, errCb); },
+    save(items) { return setDoc(doc(db, COLL, uid), { items }); }
+  };
+}
+
+/* ---------- แอป ---------- */
+(function () {
+  'use strict';
+  var TAU = Math.PI * 2;
+  var HUES = [335, 14, 45, 160, 265, 205];
+  var HUE_TH = ['ชมพู', 'ส้ม', 'ทอง', 'เขียว', 'ม่วง', 'ฟ้า'];
+  var MAX_EACH = 5;
+  var HEART = 'M12 21C5 15 1 11.5 1 7.2 1 4 3.5 1.8 6.3 1.8c2.3 0 4.2 1.3 5.7 3.5 1.5-2.2 3.4-3.5 5.7-3.5C20.5 1.8 23 4 23 7.2 23 11.5 19 15 12 21z';
+  var HEART_SVG = '<svg viewBox="0 0 24 22" width="15" height="14" aria-hidden="true"><path d="' + HEART + '" fill="currentColor"/></svg>';
+  var heartPath = new Path2D(HEART);
+  var FONT = '"IBM Plex Sans Thai","Noto Sans Thai",sans-serif';
+
+  function $(id) { return document.getElementById(id); }
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var T0 = Date.now();
+  var W = 0, H = 0, dpr = 1;
+  var stars = [];
+  var items = [];
+  var hits = [];
+  var launched = new Map();
+  var selected = null;
+  var showAll = false;
+  var confirmId = null;
+  var hueIdx = 0;
+  var S = { be: null, uid: null, busy: false };
+  var SAMPLE = { key: 'sample', a: 'ชื่อคุณ', b: 'ชื่อเขา', w: '', h: 0, t: 0, sample: true };
+
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function clean(s, n) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, n); }
+  function rid() { return Math.random().toString(36).slice(2, 10); }
+  function cut(s) { var a = Array.from(s); return a.length > 14 ? a.slice(0, 13).join('') + '…' : s; }
+
+  /* ---------- canvas ---------- */
+  function resize() {
+    var r = $('river').getBoundingClientRect();
+    W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    var rand = rng(7), n = Math.round(W / 9), hz = H * 0.3;
+    stars = [];
+    for (var i = 0; i < n; i++) stars.push({ x: rand() * W, y: rand() * hz * 0.95, r: 0.4 + rand() * 0.9, ph: rand() * 6 });
+    requestDraw();
+  }
+
+  function chedi(cx, y, h, w) {
+    ctx.beginPath();
+    ctx.moveTo(cx - w, y); ctx.lineTo(cx - w, y - h * 0.18);
+    ctx.quadraticCurveTo(cx - w * 0.9, y - h * 0.5, cx - w * 0.25, y - h * 0.72);
+    ctx.lineTo(cx - w * 0.06, y - h * 0.9); ctx.lineTo(cx, y - h); ctx.lineTo(cx + w * 0.06, y - h * 0.9);
+    ctx.lineTo(cx + w * 0.25, y - h * 0.72);
+    ctx.quadraticCurveTo(cx + w * 0.9, y - h * 0.5, cx + w, y - h * 0.18);
+    ctx.lineTo(cx + w, y); ctx.closePath(); ctx.fill();
+  }
+  function bank(hz) {
+    ctx.fillStyle = '#050a1b';
+    ctx.beginPath(); ctx.moveTo(0, hz + 2);
+    for (var x = 0; x <= W + 6; x += 6) ctx.lineTo(x, hz - 4 - 3 * Math.abs(Math.sin(x * 0.045 + 1)) - 2 * Math.sin(x * 0.11));
+    ctx.lineTo(W, hz + 2); ctx.closePath(); ctx.fill();
+    var h1 = Math.min(62, hz * 0.78);
+    chedi(W * 0.14, hz, h1, h1 * 0.27);
+    chedi(W * 0.27, hz, h1 * 0.6, h1 * 0.17);
+    chedi(W * 0.58, hz, h1 * 0.7, h1 * 0.2);
+  }
+
+  function scene(t) {
+    var hz = H * 0.3, g, i;
+    g = ctx.createLinearGradient(0, 0, 0, hz);
+    g.addColorStop(0, '#060b1c'); g.addColorStop(1, '#1b2c5e');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, hz + 1);
+    ctx.fillStyle = '#dfe8ff';
+    for (i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      ctx.globalAlpha = 0.35 + 0.5 * (0.5 + 0.5 * Math.sin(t * 1.2 + s.ph));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    var mx = W * 0.82, my = hz * 0.46, mr = Math.max(11, Math.min(20, W * 0.03));
+    g = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 4.5);
+    g.addColorStop(0, 'rgba(215,226,255,0.38)'); g.addColorStop(1, 'rgba(215,226,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, mr * 4.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#eef0ff'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
+    for (i = 0; i < 9; i++) {
+      var sp = 3 + (i % 3) * 1.4, span = hz + 20;
+      var yy = hz + 6 - ((t * sp + i * 29) % span);
+      var xx = ((i * 0.618034) % 1) * W + Math.sin(t * 0.6 + i) * 5;
+      var a = Math.max(0, Math.min(1, yy / 20)) * Math.max(0, Math.min(1, (hz + 6 - yy) / 12));
+      if (a <= 0) continue;
+      ctx.save(); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'lighter';
+      g = ctx.createRadialGradient(xx, yy, 0, xx, yy, 12);
+      g.addColorStop(0, 'rgba(255,190,100,0.65)'); g.addColorStop(1, 'rgba(255,190,100,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(xx, yy, 12, 0, TAU); ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha = a; ctx.fillStyle = '#ffd9a0'; ctx.fillRect(xx - 2, yy - 2.5, 4, 5); ctx.globalAlpha = 1;
+    }
+    g = ctx.createLinearGradient(0, hz, 0, H);
+    g.addColorStop(0, '#16356a'); g.addColorStop(1, '#07102a');
+    ctx.fillStyle = g; ctx.fillRect(0, hz, W, H - hz);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, hz, W, H - hz); ctx.clip();
+    ctx.globalAlpha = 0.18; ctx.translate(0, 2 * hz); ctx.scale(1, -1); bank(hz); ctx.restore();
+    bank(hz);
+    ctx.fillStyle = '#e6ecff';
+    for (i = 0; i < 15; i++) {
+      var wy = hz + i * (H - hz) / 17, ww = 34 * (1 - i / 20) * (0.6 + 0.4 * Math.sin(t * 2 + i));
+      ctx.globalAlpha = 0.28 * (1 - i / 16); ctx.fillRect(mx - ww / 2, wy + 2, ww, 1.5);
+    }
+    ctx.globalAlpha = 1; ctx.lineWidth = 1;
+    for (i = 0; i < 12; i++) {
+      var by = hz + (i + 1) / 12 * (H - hz);
+      ctx.strokeStyle = 'rgba(150,185,255,' + (0.05 + i * 0.004) + ')';
+      ctx.beginPath();
+      for (var x = 0; x <= W + 12; x += 12) {
+        var wv = by + Math.sin(x * 0.02 + t * 0.7 * (1 + i * 0.1) + i) * (1 + i * 0.25);
+        if (x === 0) ctx.moveTo(x, wv); else ctx.lineTo(x, wv);
+      }
+      ctx.stroke();
+    }
+  }
+
+  var RINGS = [
+    { n: 12, rad: 12, len: 11, wid: 5, lift: -2, l: 70, ph: 0 },
+    { n: 9, rad: 6.5, len: 8, wid: 4, lift: -6, l: 82, ph: 0.3 }
+  ];
+  RINGS.forEach(function (r) {
+    r.a = [];
+    for (var k = 0; k < r.n; k++) r.a.push(r.ph + k / r.n * TAU);
+    r.a.sort(function (p, q) { return Math.sin(p) - Math.sin(q); });
+  });
+
+  function drawK(x, y, s, hue, ph, t, lit, alpha) {
+    var g;
+    ctx.save(); ctx.globalAlpha = alpha;
+    if (lit > 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(x, y + 3 * s); ctx.scale(1, 0.3);
+      g = ctx.createRadialGradient(0, 0, 0, 0, 0, 72 * s);
+      g.addColorStop(0, 'rgba(255,180,80,' + (0.4 * lit) + ')'); g.addColorStop(1, 'rgba(255,180,80,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 72 * s, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.translate(x, y + Math.sin(t * 1.4 + ph) * 1.3 * s);
+    ctx.scale(s, s); ctx.rotate(Math.sin(t * 0.9 + ph) * 0.02);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(0, 3, 25, 7, 0, 0, TAU); ctx.fill();
+    g = ctx.createLinearGradient(0, -8, 0, 8); g.addColorStop(0, '#4f9a63'); g.addColorStop(1, '#1f5236');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, 24, 8.5, 0, 0, TAU); ctx.fill();
+    for (var q = 0; q < RINGS.length; q++) {
+      var r = RINGS[q];
+      ctx.save(); ctx.translate(0, r.lift); ctx.scale(1, 0.42);
+      ctx.fillStyle = 'hsl(' + hue + ' 78% ' + r.l + '%)';
+      ctx.strokeStyle = 'hsl(' + hue + ' 60% 42%)'; ctx.lineWidth = 0.9;
+      for (var k = 0; k < r.a.length; k++) {
+        var a = r.a[k];
+        ctx.save(); ctx.translate(Math.cos(a) * r.rad, Math.sin(a) * r.rad); ctx.rotate(a);
+        ctx.beginPath(); ctx.ellipse(r.len * 0.5, 0, r.len * 0.62, r.wid, 0, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    ctx.fillStyle = '#f5ead2'; ctx.fillRect(-1.7, -18, 3.4, 11);
+    if (lit > 0) {
+      var f = lit * (1 + 0.1 * Math.sin(t * 10 + ph * 3) + 0.05 * Math.sin(t * 17 + ph));
+      ctx.save(); ctx.translate(0, -22);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      g = ctx.createRadialGradient(0, 0, 0, 0, 0, 34 * f);
+      g.addColorStop(0, 'rgba(255,200,110,0.5)'); g.addColorStop(1, 'rgba(255,200,110,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 34 * f, 0, TAU); ctx.fill();
+      ctx.restore();
+      g = ctx.createLinearGradient(0, -9 * f, 0, 3); g.addColorStop(0, '#ffb347'); g.addColorStop(1, '#fff6d8');
+      ctx.fillStyle = g; ctx.beginPath();
+      ctx.moveTo(0, -9 * f); ctx.bezierCurveTo(5 * f, -3 * f, 4 * f, 3, 0, 3);
+      ctx.bezierCurveTo(-4 * f, 3, -5 * f, -3 * f, 0, -9 * f); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function pill(x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath(); ctx.fill();
+  }
+  function label(x, y, s, it, alpha) {
+    var fs = Math.max(11, 12.5 * s);
+    ctx.font = '500 ' + fs + 'px ' + FONT;
+    var A = cut(it.a), B = cut(it.b);
+    var wa = ctx.measureText(A).width, wb = ctx.measureText(B).width;
+    var hk = fs * 0.78, gap = fs * 0.45, tw = wa + gap + hk + gap + wb, ly = y + 24 * s;
+    var px = fs * 0.6, ph = fs * 0.55, bh = fs + ph * 2;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.62; ctx.fillStyle = '#050a1c'; pill(x - tw / 2 - px, ly - bh / 2, tw + px * 2, bh, bh / 2);
+    ctx.globalAlpha = alpha; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = '#f4f0e6';
+    var x0 = x - tw / 2;
+    ctx.fillText(A, x0, ly + 0.5);
+    var k = hk / 24;
+    ctx.save(); ctx.translate(x0 + wa + gap, ly - 11 * k); ctx.scale(k, k);
+    ctx.fillStyle = 'hsl(' + HUES[it.h] + ' 85% 70%)'; ctx.fill(heartPath); ctx.restore();
+    ctx.fillText(B, x0 + wa + gap + hk + gap, ly + 0.5);
+    ctx.restore();
+    return { w: tw + px * 2, h: bh, ly: ly };
+  }
+
+  function capFor() { var L = W < 520 ? 6 : 8, span = W + 300; return { L: L, span: span, cap: L * Math.max(2, Math.floor(span / 175)) }; }
+
+  function krathongs(now, t) {
+    var c = capFor(), L = c.L, span = c.span, hz = H * 0.3;
+    var scaleBase = W < 520 ? 0.85 : 1.05;
+    var start = Math.max(0, items.length - c.cap), src = [], i;
+    if (items.length) for (i = start; i < items.length; i++) src.push({ it: items[i], i: i });
+    else src.push({ it: SAMPLE, i: 3 });
+    var arr = [];
+    for (i = 0; i < src.length; i++) {
+      var it = src[i].it, idx = src[i].i, lane = idx % L, q = (lane + 0.5) / L;
+      var speed = 6 + 10 * q, j = Math.floor(idx / L);
+      var off = ((j * 0.618034 + lane * 0.37) % 1) * span;
+      arr.push({
+        it: it, key: it.key, lane: lane,
+        x: ((now / 1000 * speed + off) % span) - 150,
+        y: hz + (H - hz) * (0.16 + 0.7 * q),
+        s: (0.62 + 0.55 * q) * scaleBase, ph: (hash(it.key) % 628) / 100
+      });
+    }
+    arr.sort(function (p, q2) { return p.y - q2.y; });
+    hits = [];
+    for (i = 0; i < arr.length; i++) {
+      var e = arr[i];
+      if (e.x < -90 || e.x > W + 90) continue;
+      var fade = Math.max(0, Math.min(1, (e.x + 90) / 60, (W + 90 - e.x) / 60));
+      var base = e.it.sample ? 0.6 : 1;
+      var yy = e.y, lit = 1, labelA = 1, age = -1;
+      var ls = launched.get(e.key);
+      if (ls) {
+        age = (Date.now() - ls) / 1000;
+        if (age > 2.4) { launched.delete(e.key); age = -1; }
+        else {
+          var p = Math.min(1, age / 1.0);
+          yy = -40 + (e.y + 40) * p * p;
+          lit = Math.max(0, Math.min(1, (age - 1.2) / 0.8));
+          labelA = Math.max(0, Math.min(1, (age - 1.0) / 0.5));
+        }
+      }
+      if (age > 1.0) {
+        var sp = (age - 1.0) / 1.4;
+        ctx.save(); ctx.lineWidth = 1.2;
+        for (var rr = 0; rr < 3; rr++) {
+          var ra = sp - rr * 0.18; if (ra <= 0 || ra >= 1) continue;
+          ctx.strokeStyle = 'rgba(255,220,160,' + ((1 - ra) * 0.5) + ')';
+          ctx.beginPath(); ctx.ellipse(e.x, e.y + 3 * e.s, ra * 60 * e.s, ra * 18 * e.s, 0, 0, TAU); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      if (e.key === selected) {
+        ctx.save(); ctx.strokeStyle = 'rgba(255,200,120,' + (0.6 + 0.3 * Math.sin(t * 4)) + ')'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(e.x, e.y + 2 * e.s, 36 * e.s, 13 * e.s, 0, 0, TAU); ctx.stroke(); ctx.restore();
+      }
+      drawK(e.x, yy, e.s, HUES[e.it.h], e.ph, t, lit, fade * base);
+      var lab = label(e.x, e.y, e.s, e.it, fade * base * labelA);
+      if (!e.it.sample) hits.push({ key: e.key, x: e.x, y: e.y, s: e.s, w: lab.w, h: lab.h, ly: lab.ly });
+    }
+    if (!items.length) {
+      ctx.save(); ctx.font = '400 12px ' + FONT; ctx.fillStyle = 'rgba(234,238,250,0.7)'; ctx.textAlign = 'center';
+      ctx.fillText('ตัวอย่าง: ยังไม่มีกระทงในแม่น้ำ', W / 2, H - 12); ctx.restore();
+    }
+  }
+
+  function draw() {
+    var now = reduce ? T0 : Date.now();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    scene(now / 1000);
+    krathongs(now, now / 1000);
+  }
+  var raf = 0;
+  function frame() { raf = 0; draw(); if (!reduce) raf = requestAnimationFrame(frame); }
+  function requestDraw() { if (!raf) raf = requestAnimationFrame(frame); }
+
+  cv.addEventListener('pointerdown', function (e) {
+    var r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, found = null;
+    for (var k = hits.length - 1; k >= 0; k--) {
+      var h = hits[k], dx = px - h.x;
+      if ((Math.abs(dx) < h.w / 2 + 6 && Math.abs(py - h.ly) < h.h / 2 + 6) || Math.hypot(dx, (py - (h.y - 8 * h.s)) * 1.2) < 30 * h.s) { found = h.key; break; }
+    }
+    selected = found === selected ? null : found;
+    showPick(); requestDraw();
+  });
+
+  /* ---------- DOM ---------- */
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function heartSpan(h) { var s = el('span', 'heart'); s.style.setProperty('--h', HUES[h]); s.innerHTML = HEART_SVG; return s; }
+
+  function showPick() {
+    var box = $('pick'), it = null;
+    for (var i = 0; i < items.length; i++) if (items[i].key === selected) it = items[i];
+    if (!it) { box.hidden = true; return; }
+    box.replaceChildren();
+    var line = el('div', 'nm');
+    line.append(it.a + ' ', heartSpan(it.h), ' ' + it.b);
+    box.append(line);
+    if (it.w) box.append(el('div', 'wish', it.w));
+    box.hidden = false;
+  }
+
+  function fmt(t) { try { return new Date(t).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+
+  var FOOT = 'แต่ละคนลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง ทุกคนที่เปิดหน้านี้เห็นแม่น้ำเดียวกัน';
+
+  function renderList() {
+    var ul = $('list'), more = $('more');
+    ul.replaceChildren();
+    $('count').textContent = items.length + ' ใบ';
+    if (!items.length) {
+      ul.append(el('li', 'row empty', 'แม่น้ำยังว่างอยู่ ลอยกระทงใบแรกได้เลย'));
+      more.hidden = true; return;
+    }
+    var arr = items.slice().reverse(), show = showAll ? arr : arr.slice(0, 24);
+    show.forEach(function (it) {
+      var li = el('li', 'row'); li.style.setProperty('--h', HUES[it.h]);
+      li.append(el('span', 'dot'));
+      var main = el('div'), names = el('div', 'names');
+      names.append(el('span', null, it.a), heartSpan(it.h), el('span', null, it.b));
+      var mine = S.uid && it.uid === S.uid;
+      if (mine) names.append(el('span', 'badge', 'ของคุณ'));
+      main.append(names);
+      if (it.w) main.append(el('p', 'wish', it.w));
+      var side = el('div', 'side');
+      side.append(el('span', null, fmt(it.t)));
+      if (mine) {
+        var b = el('button', 'rm' + (confirmId === it.key ? ' sure' : ''), confirmId === it.key ? 'ยืนยันดึงกลับ' : 'ดึงกลับ');
+        b.type = 'button'; b.dataset.key = it.key; side.append(b);
+      }
+      li.append(main, side); ul.append(li);
+    });
+    more.hidden = showAll || arr.length <= 24;
+    more.textContent = 'ดูทั้งหมด ' + arr.length + ' ใบ';
+    var hidden = Math.max(0, items.length - capFor().cap);
+    $('foot').textContent = FOOT + (hidden ? ' แม่น้ำแสดงกระทงล่าสุด ' + (items.length - hidden) + ' ใบ ที่เหลือดูได้ในรายชื่อ' : '');
+  }
+
+  $('more').addEventListener('click', function () { showAll = true; renderList(); });
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('.rm'); if (!b) return;
+    var key = b.dataset.key;
+    if (confirmId === key) { confirmId = null; removeMine(key); return; }
+    confirmId = key; renderList();
+    setTimeout(function () { if (confirmId === key) { confirmId = null; renderList(); } }, 3500);
+  });
+
+  var hw = $('hues');
+  HUES.forEach(function (h, i) {
+    var lb = el('label', 'sw'); lb.style.setProperty('--h', h);
+    var inp = document.createElement('input');
+    inp.type = 'radio'; inp.name = 'hue'; inp.value = i; inp.className = 'sr'; inp.setAttribute('aria-label', HUE_TH[i]);
+    if (i === 0) inp.checked = true;
+    inp.addEventListener('change', function () { hueIdx = i; });
+    lb.append(inp); hw.append(lb);
+  });
+
+  function setMsg(text, kind) { var m = $('msg'); m.textContent = text || ''; m.className = kind || ''; }
+  function setGate(text, on) { var g = $('gate'); g.textContent = text || ''; g.hidden = !text; $('ff').disabled = !on; }
+
+  /* ---------- data ---------- */
+  function myItems() { return items.filter(function (x) { return x.uid === S.uid; }); }
+  function strip(x) { return { id: x.rid, a: x.a, b: x.b, w: x.w, h: x.h, t: x.t }; }
+
+  function errText(err) {
+    var c = err && err.code;
+    if (c === 'permission-denied') return 'ไม่มีสิทธิ์เขียนข้อมูล ตรวจ Firestore Rules ว่าเผยแพร่แล้วหรือยัง';
+    if (c === 'quota_exceeded' || c === 'resource-exhausted') return 'ใช้โควตาเต็ม ลองใหม่ภายหลัง';
+    if (c === 'unavailable') return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+    return 'ยังลอยไม่สำเร็จ ลองอีกครั้งนะ';
+  }
+
+  $('f').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (S.busy || !S.be || !S.uid) return;
+    var a = clean($('n1').value, 20), b = clean($('n2').value, 20), w = clean($('wish').value, 60);
+    if (!a || !b) { setMsg('ใส่ชื่อให้ครบทั้งสองคนก่อนนะ', 'bad'); (a ? $('n2') : $('n1')).focus(); return; }
+    var mine = myItems();
+    if (mine.length >= MAX_EACH) { setMsg('ลอยครบ ' + MAX_EACH + ' ใบแล้ว ดึงใบเก่ากลับก่อนถึงจะลอยใบใหม่ได้', 'bad'); return; }
+    var it = { id: rid(), a: a, b: b, w: w, h: hueIdx, t: Date.now() };
+    var key = S.uid + '.' + it.id;
+    S.busy = true; $('go').disabled = true; setMsg('');
+    if (!reduce) launched.set(key, Date.now());
+    try {
+      await S.be.save(mine.map(strip).concat([it]));
+      $('n1').value = ''; $('n2').value = ''; $('wish').value = '';
+      selected = key;
+      setMsg('ลอยแล้ว ขอให้สมหวัง', 'ok');
+      $('river').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    } catch (err) {
+      launched.delete(key); setMsg(errText(err), 'bad');
+    } finally {
+      S.busy = false; $('go').disabled = false;
+    }
+  });
+
+  async function removeMine(key) {
+    if (!S.be || !S.uid) return;
+    var rest = myItems().filter(function (x) { return x.key !== key; }).map(strip);
+    try { await S.be.save(rest); if (selected === key) selected = null; setMsg('ดึงกระทงกลับแล้ว', 'ok'); }
+    catch (err) { setMsg(errText(err), 'bad'); }
+  }
+
+  function onSnap(snap) {
+    var out = [];
+    snap.docs.forEach(function (d) {
+      var data = d.data(), arr = data && Array.isArray(data.items) ? data.items.slice(0, MAX_EACH) : [];
+      arr.forEach(function (x, n) {
+        if (!x || typeof x !== 'object' || typeof x.a !== 'string' || typeof x.b !== 'string') return;
+        var rawId = typeof x.id === 'string' && x.id ? x.id.slice(0, 24) : 'i' + n;
+        out.push({
+          key: d.id + '.' + rawId, rid: rawId, uid: d.id,
+          a: x.a.slice(0, 20), b: x.b.slice(0, 20), w: typeof x.w === 'string' ? x.w.slice(0, 60) : '',
+          h: Number.isInteger(x.h) && x.h >= 0 && x.h < HUES.length ? x.h : 0, t: Number(x.t) || 0
+        });
+      });
+    });
+    out.sort(function (p, q) { return p.t - q.t || (p.key < q.key ? -1 : 1); });
+    items = out;
+    if (selected && !items.some(function (x) { return x.key === selected; })) selected = null;
+    renderList(); showPick(); requestDraw();
+  }
+
+  async function init() {
+    var be;
+    try { be = await setupBackend(); }
+    catch (err) {
+      var c = err && err.code;
+      setGate(c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation'
+        ? 'ยังไม่ได้เปิด Anonymous sign-in ใน Firebase Authentication (ดู README.md)'
+        : 'เชื่อมต่อแม่น้ำไม่สำเร็จ ตรวจค่า FIREBASE_CONFIG แล้วรีเฟรชหน้านี้', false);
+      return;
+    }
+    S.be = be; S.uid = be.uid;
+    be.subscribe(onSnap, function () { setMsg('อ่านข้อมูลกระทงไม่ได้ ลองรีเฟรชหน้านี้', 'bad'); });
+    setGate(be.note, true);
+  }
+
+  /* ---------- start ---------- */
+  renderList();
+  if (window.ResizeObserver) new ResizeObserver(resize).observe($('river')); else window.addEventListener('resize', resize);
+  resize();
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load('500 14px "IBM Plex Sans Thai"'), document.fonts.load('400 30px Chonburi')]).then(requestDraw, requestDraw);
+  }
+  init().catch(function () { setGate('เชื่อมต่อแม่น้ำไม่สำเร็จ ลองรีเฟรชหน้านี้', false); });
+})();
+</script>
+</body>
+</html>

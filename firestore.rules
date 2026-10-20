@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /krathongs/{id} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'a', 'b', 'w', 'h', 't'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.a is string && request.resource.data.a.size() >= 1 && request.resource.data.a.size() <= 20
+        && request.resource.data.b is string && request.resource.data.b.size() >= 1 && request.resource.data.b.size() <= 20
+        && request.resource.data.w is string && request.resource.data.w.size() <= 60
+        && request.resource.data.h is int && request.resource.data.h >= 0 && request.resource.data.h <= 5
+        && request.resource.data.t is int;
+
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}

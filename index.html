@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a1128">
 <title>กระทงคู่ออนไลน์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +24,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   background: var(--night);
@@ -36,12 +35,11 @@ body {
 }
 h1, h2 { margin: 0; font-weight: 400; text-wrap: balance; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-[hidden] { display: none !important; }
 
 .river { position: relative; height: clamp(320px, 58vw, 480px); overflow: hidden; background: var(--night); }
 .river canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
 .river-in {
-  position: relative; max-width: 880px; margin: 0 auto; padding-top: max(18px, env(safe-area-inset-top, 0px));
+  position: relative; max-width: 880px; margin: 0 auto; padding-top: 18px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   pointer-events: none;
@@ -132,9 +130,9 @@ button { font: inherit; cursor: pointer; }
 <main class="wrap">
   <section class="launch" aria-labelledby="h-launch">
     <h2 id="h-launch">ลอยกระทงของคุณ</h2>
-    <p class="gate" id="gate">กำลังเชื่อมต่อแม่น้ำ...</p>
+    <p class="gate" id="gate" hidden></p>
     <form id="f" novalidate>
-      <fieldset class="ff" id="ff" disabled>
+      <fieldset class="ff" id="ff">
         <div class="pair">
           <div class="fld">
             <label for="n1">ชื่อคนที่ 1</label>
@@ -171,104 +169,22 @@ button { font: inherit; cursor: pointer; }
     <button type="button" class="more" id="more" hidden></button>
   </section>
 
-  <p class="foot" id="foot">แต่ละคนลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง ทุกคนที่เปิดหน้านี้เห็นแม่น้ำเดียวกัน</p>
+  <p class="foot" id="foot">แต่ละเครื่องลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง</p>
 </main>
 
+<script src="config.js"></script>
+<script>window.CONFIG = window.CONFIG || { apiKey: '', projectId: '' }; var CONFIG = window.CONFIG;</script>
+
 <script>
-/* แสดงข้อผิดพลาดบนหน้าเว็บ จะได้ไม่ดำเงียบ */
-window.addEventListener('error', function (e) {
-  var g = document.getElementById('gate');
-  if (g) { g.hidden = false; g.textContent = 'เกิดข้อผิดพลาด: ' + (e.message || 'unknown'); }
-});
-window.addEventListener('unhandledrejection', function (e) {
-  var g = document.getElementById('gate');
-  if (g) { g.hidden = false; g.textContent = 'เกิดข้อผิดพลาด: ' + ((e.reason && (e.reason.code || e.reason.message)) || 'unknown'); }
-});
-</script>
-<script type="module">
-/* =====================================================================
-   ตั้งค่า Firebase  (ดูขั้นตอนใน README.md)
-   ใส่ค่าจาก Firebase Console > Project settings > Your apps > Web app
-   ถ้ายังไม่ใส่ หน้านี้จะทำงานใน "โหมดทดลอง" เห็นเฉพาะในเบราว์เซอร์ของตัวเอง
-   ===================================================================== */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAuZ-ifrL0intTwCuHoRCQ3VP4ayU5n1Xo",
-  authDomain: "keoluvkwan.firebaseapp.com",
-  projectId: "keoluvkwan",
-  storageBucket: "keoluvkwan.firebasestorage.app",
-  messagingSenderId: "89636496335",
-  appId: "1:89636496335:web:9256f4c2f5c2e30fede8ba"
-};
-
-const FB_BASE = 'https://www.gstatic.com/firebasejs/10.14.1/';
-function withTimeout(p, ms) {
-  return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { var e = new Error('timeout'); e.code = 'timeout'; rej(e); }, ms); })]);
-}
-async function loadFirebase() {
-  try {
-    var m = await withTimeout(Promise.all([
-      import(FB_BASE + 'firebase-app.js'),
-      import(FB_BASE + 'firebase-auth.js'),
-      import(FB_BASE + 'firebase-firestore.js')
-    ]), 12000);
-    return Object.assign({}, m[0], m[1], m[2]);
-  } catch (e) { var er = new Error('sdk'); er.code = 'sdk-load'; throw er; }
-}
-
-/* ---------- backend adapter: Firebase หรือ โหมดทดลอง (localStorage) ---------- */
-const COLL = 'krathongs';
-const configured = FIREBASE_CONFIG.apiKey && !/^YOUR_/.test(FIREBASE_CONFIG.apiKey);
-
-function localBackend() {
-  const LS_UID = 'krathong.uid', LS_DATA = 'krathong.local';
-  let uid = null;
-  try { uid = localStorage.getItem(LS_UID); if (!uid) { uid = 'local-' + Math.random().toString(36).slice(2, 12); localStorage.setItem(LS_UID, uid); } }
-  catch (e) { uid = 'local-' + Math.random().toString(36).slice(2, 12); }
-  const read = () => { try { return JSON.parse(localStorage.getItem(LS_DATA)) || {}; } catch (e) { return {}; } };
-  const snap = () => { const m = read(); return { docs: Object.keys(m).map(k => ({ id: k, data: () => ({ items: m[k] }) })) }; };
-  return {
-    mode: 'local', uid,
-    note: 'โหมดทดลอง: ยังไม่ได้ตั้งค่า Firebase จึงเห็นกระทงเฉพาะในเครื่องนี้ (ดู README.md เพื่อเปิดใช้ร่วมกับทุกคน)',
-    subscribe(cb) {
-      cb(snap());
-      window.addEventListener('storage', () => cb(snap()));
-      return () => {};
-    },
-    async save(items) {
-      const m = read(); m[uid] = items;
-      try { localStorage.setItem(LS_DATA, JSON.stringify(m)); } catch (e) { const er = new Error('quota'); er.code = 'quota_exceeded'; throw er; }
-      this._cb && this._cb(snap());
-    }
-  };
-}
-
-async function setupBackend() {
-  if (!configured) {
-    const b = localBackend();
-    const sub = b.subscribe;
-    b.subscribe = function (cb) { b._cb = cb; return sub.call(b, cb); };
-    return b;
-  }
-  const fb = await loadFirebase();
-  const app = fb.initializeApp(FIREBASE_CONFIG);
-  const auth = fb.getAuth(app);
-  const cred = await withTimeout(fb.signInAnonymously(auth), 12000);
-  const db = fb.getFirestore(app);
-  const uid = cred.user.uid;
-  return {
-    mode: 'firebase', uid, note: '',
-    subscribe(cb, errCb) { return fb.onSnapshot(fb.collection(db, COLL), cb, errCb); },
-    save(items) { return fb.setDoc(fb.doc(db, COLL, uid), { items }); }
-  };
-}
-
-/* ---------- แอป ---------- */
 (function () {
   'use strict';
   var TAU = Math.PI * 2;
   var HUES = [335, 14, 45, 160, 265, 205];
   var HUE_TH = ['ชมพู', 'ส้ม', 'ทอง', 'เขียว', 'ม่วง', 'ฟ้า'];
   var MAX_EACH = 5;
+  var CLOUD = !!(CONFIG.apiKey && CONFIG.projectId);
+  var FS = 'https://firestore.googleapis.com/v1/projects/' + CONFIG.projectId + '/databases/(default)/documents/krathongs';
+  var LS_UID = 'krathong_uid', LS_ITEMS = 'krathong_local_items';
   var HEART = 'M12 21C5 15 1 11.5 1 7.2 1 4 3.5 1.8 6.3 1.8c2.3 0 4.2 1.3 5.7 3.5 1.5-2.2 3.4-3.5 5.7-3.5C20.5 1.8 23 4 23 7.2 23 11.5 19 15 12 21z';
   var HEART_SVG = '<svg viewBox="0 0 24 22" width="15" height="14" aria-hidden="true"><path d="' + HEART + '" fill="currentColor"/></svg>';
   var heartPath = new Path2D(HEART);
@@ -287,13 +203,13 @@ async function setupBackend() {
   var showAll = false;
   var confirmId = null;
   var hueIdx = 0;
-  var S = { be: null, uid: null, busy: false };
+  var S = { uid: null, busy: false };
   var SAMPLE = { key: 'sample', a: 'ชื่อคุณ', b: 'ชื่อเขา', w: '', h: 0, t: 0, sample: true };
 
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function clean(s, n) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, n); }
-  function rid() { return Math.random().toString(36).slice(2, 10); }
+  function rid() { return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); }
   function cut(s) { var a = Array.from(s); return a.length > 14 ? a.slice(0, 13).join('') + '…' : s; }
 
   /* ---------- canvas ---------- */
@@ -567,12 +483,16 @@ async function setupBackend() {
 
   function fmt(t) { try { return new Date(t).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
 
-  var FOOT = 'แต่ละคนลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง ทุกคนที่เปิดหน้านี้เห็นแม่น้ำเดียวกัน';
+  var FOOT = CLOUD
+    ? 'แต่ละเครื่องลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง ทุกคนที่เปิดหน้านี้เห็นแม่น้ำเดียวกัน'
+    : 'แต่ละเครื่องลอยได้สูงสุด 5 ใบ และดึงกลับได้เฉพาะกระทงของตัวเอง';
 
   function renderList() {
     var ul = $('list'), more = $('more');
     ul.replaceChildren();
     $('count').textContent = items.length + ' ใบ';
+    var hidden = Math.max(0, items.length - capFor().cap);
+    $('foot').textContent = FOOT + (hidden ? ' แม่น้ำแสดงกระทงล่าสุด ' + (items.length - hidden) + ' ใบ ที่เหลือดูได้ในรายชื่อ' : '');
     if (!items.length) {
       ul.append(el('li', 'row empty', 'แม่น้ำยังว่างอยู่ ลอยกระทงใบแรกได้เลย'));
       more.hidden = true; return;
@@ -597,8 +517,6 @@ async function setupBackend() {
     });
     more.hidden = showAll || arr.length <= 24;
     more.textContent = 'ดูทั้งหมด ' + arr.length + ' ใบ';
-    var hidden = Math.max(0, items.length - capFor().cap);
-    $('foot').textContent = FOOT + (hidden ? ' แม่น้ำแสดงกระทงล่าสุด ' + (items.length - hidden) + ' ใบ ที่เหลือดูได้ในรายชื่อ' : '');
   }
 
   $('more').addEventListener('click', function () { showAll = true; renderList(); });
@@ -621,102 +539,173 @@ async function setupBackend() {
   });
 
   function setMsg(text, kind) { var m = $('msg'); m.textContent = text || ''; m.className = kind || ''; }
-  function setGate(text, on) { var g = $('gate'); g.textContent = text || ''; g.hidden = !text; $('ff').disabled = !on; }
+  function setGate(text) { var g = $('gate'); g.textContent = text || ''; g.hidden = !text; }
 
-  /* ---------- data ---------- */
-  function myItems() { return items.filter(function (x) { return x.uid === S.uid; }); }
-  function strip(x) { return { id: x.rid, a: x.a, b: x.b, w: x.w, h: x.h, t: x.t }; }
-
-  function errText(err) {
-    var c = err && err.code;
-    if (c === 'permission-denied') return 'ไม่มีสิทธิ์เขียนข้อมูล ตรวจ Firestore Rules ว่าเผยแพร่แล้วหรือยัง';
-    if (c === 'quota_exceeded' || c === 'resource-exhausted') return 'ใช้โควตาเต็ม ลองใหม่ภายหลัง';
-    if (c === 'unavailable') return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
-    return 'ยังลอยไม่สำเร็จ ลองอีกครั้งนะ';
-  }
-
-  $('f').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    if (S.busy || !S.be || !S.uid) return;
-    var a = clean($('n1').value, 20), b = clean($('n2').value, 20), w = clean($('wish').value, 60);
-    if (!a || !b) { setMsg('ใส่ชื่อให้ครบทั้งสองคนก่อนนะ', 'bad'); (a ? $('n2') : $('n1')).focus(); return; }
-    var mine = myItems();
-    if (mine.length >= MAX_EACH) { setMsg('ลอยครบ ' + MAX_EACH + ' ใบแล้ว ดึงใบเก่ากลับก่อนถึงจะลอยใบใหม่ได้', 'bad'); return; }
-    var it = { id: rid(), a: a, b: b, w: w, h: hueIdx, t: Date.now() };
-    var key = S.uid + '.' + it.id;
-    S.busy = true; $('go').disabled = true; setMsg('');
-    if (!reduce) launched.set(key, Date.now());
+  /* ---------- storage (local หรือ Firebase) ---------- */
+  function getUid() {
     try {
-      await S.be.save(mine.map(strip).concat([it]));
-      $('n1').value = ''; $('n2').value = ''; $('wish').value = '';
-      selected = key;
-      setMsg('ลอยแล้ว ขอให้สมหวัง', 'ok');
-      $('river').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-    } catch (err) {
-      launched.delete(key); setMsg(errText(err), 'bad');
-    } finally {
-      S.busy = false; $('go').disabled = false;
-    }
-  });
-
-  async function removeMine(key) {
-    if (!S.be || !S.uid) return;
-    var rest = myItems().filter(function (x) { return x.key !== key; }).map(strip);
-    try { await S.be.save(rest); if (selected === key) selected = null; setMsg('ดึงกระทงกลับแล้ว', 'ok'); }
-    catch (err) { setMsg(errText(err), 'bad'); }
+      var u = localStorage.getItem(LS_UID);
+      if (!u) { u = 'u' + rid(); localStorage.setItem(LS_UID, u); }
+      return u;
+    } catch (e) { return 'u' + rid(); }
   }
 
-  function onSnap(snap) {
+  function normalize(x, fallbackUid) {
+    if (!x || typeof x.a !== 'string' || typeof x.b !== 'string') return null;
+    var id = typeof x.key === 'string' && x.key ? x.key.slice(0, 40) : null;
+    if (!id) return null;
+    return {
+      key: id, uid: typeof x.uid === 'string' ? x.uid : fallbackUid || '',
+      a: x.a.slice(0, 20), b: x.b.slice(0, 20), w: typeof x.w === 'string' ? x.w.slice(0, 60) : '',
+      h: Number.isInteger(x.h) && x.h >= 0 && x.h < HUES.length ? x.h : 0, t: Number(x.t) || 0
+    };
+  }
+
+  function setItems(list) {
     var out = [];
-    snap.docs.forEach(function (d) {
-      var data = d.data(), arr = data && Array.isArray(data.items) ? data.items.slice(0, MAX_EACH) : [];
-      arr.forEach(function (x, n) {
-        if (!x || typeof x !== 'object' || typeof x.a !== 'string' || typeof x.b !== 'string') return;
-        var rawId = typeof x.id === 'string' && x.id ? x.id.slice(0, 24) : 'i' + n;
-        out.push({
-          key: d.id + '.' + rawId, rid: rawId, uid: d.id,
-          a: x.a.slice(0, 20), b: x.b.slice(0, 20), w: typeof x.w === 'string' ? x.w.slice(0, 60) : '',
-          h: Number.isInteger(x.h) && x.h >= 0 && x.h < HUES.length ? x.h : 0, t: Number(x.t) || 0
-        });
-      });
-    });
+    list.forEach(function (x) { var n = normalize(x); if (n) out.push(n); });
     out.sort(function (p, q) { return p.t - q.t || (p.key < q.key ? -1 : 1); });
     items = out;
     if (selected && !items.some(function (x) { return x.key === selected; })) selected = null;
     renderList(); showPick(); requestDraw();
   }
 
-  async function init() {
-    var be;
-    try { be = await setupBackend(); }
-    catch (err) {
-      var c = err && err.code, txt;
-      if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation') txt = 'ยังไม่ได้เปิด Anonymous sign-in ใน Firebase Authentication (ดู README.md)';
-      else if (c === 'sdk-load') txt = 'โหลด Firebase SDK ไม่ได้ (เปิดผ่านพรีวิวของ Claude หรือเครือข่ายบล็อก gstatic.com?) ต้อง deploy ขึ้นเว็บจริงก่อนถึงจะใช้งานร่วมกันได้';
-      else if (c === 'timeout') txt = 'เชื่อมต่อ Firebase นานเกินไป ตรวจอินเทอร์เน็ตและค่า FIREBASE_CONFIG (apiKey/projectId)';
-      else if (c === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' || c === 'auth/invalid-api-key') txt = 'apiKey ใน FIREBASE_CONFIG ไม่ถูกต้อง';
-      else txt = 'เชื่อมต่อไม่สำเร็จ (' + (c || 'unknown') + ') ตรวจค่า FIREBASE_CONFIG แล้วรีเฟรช';
-      setGate(txt + ' — ตอนนี้ใช้โหมดทดลองในเครื่องนี้แทน', false);
-      var lb = localBackend(), sub = lb.subscribe;
-      lb.subscribe = function (cb) { lb._cb = cb; return sub.call(lb, cb); };
-      S.be = lb; S.uid = lb.uid;
-      lb.subscribe(onSnap);
-      $('ff').disabled = false;
-      return;
+  function localRead() {
+    try { var v = JSON.parse(localStorage.getItem(LS_ITEMS) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function localWrite(list) { try { localStorage.setItem(LS_ITEMS, JSON.stringify(list)); } catch (e) {} }
+
+  function fromDoc(d) {
+    var f = d.fields || {};
+    function sv(k) { return f[k] && typeof f[k].stringValue === 'string' ? f[k].stringValue : ''; }
+    function iv(k) { return f[k] && f[k].integerValue != null ? Number(f[k].integerValue) : 0; }
+    return { key: String(d.name || '').split('/').pop(), uid: sv('uid'), a: sv('a'), b: sv('b'), w: sv('w'), h: iv('h'), t: iv('t') };
+  }
+
+  async function cloudRead() {
+    var all = [], token = '', n = 0;
+    do {
+      var url = FS + '?pageSize=300&key=' + encodeURIComponent(CONFIG.apiKey) + (token ? '&pageToken=' + encodeURIComponent(token) : '');
+      var res = await fetch(url);
+      if (!res.ok) throw new Error('read ' + res.status);
+      var data = await res.json();
+      (data.documents || []).forEach(function (d) { all.push(fromDoc(d)); });
+      token = data.nextPageToken || ''; n++;
+    } while (token && n < 5);
+    return all;
+  }
+
+  /* ---------- Firebase anonymous auth (REST) ---------- */
+  var AUTH = { idToken: '', refresh: '', uid: '', exp: 0 }, authP = null, LS_AUTH = 'krathong_auth';
+  function authSave() { try { localStorage.setItem(LS_AUTH, JSON.stringify({ refresh: AUTH.refresh })); } catch (e) {} }
+  async function authRun() {
+    var k = encodeURIComponent(CONFIG.apiKey), res, d;
+    if (!AUTH.refresh) { try { var s = JSON.parse(localStorage.getItem(LS_AUTH) || 'null'); if (s && s.refresh) AUTH.refresh = s.refresh; } catch (e) {} }
+    if (AUTH.refresh) {
+      res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + k, {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(AUTH.refresh)
+      });
+      if (res.ok) {
+        d = await res.json();
+        AUTH.idToken = d.id_token; AUTH.refresh = d.refresh_token; AUTH.uid = d.user_id;
+        AUTH.exp = Date.now() + Number(d.expires_in) * 1000; authSave(); return;
+      }
     }
-    S.be = be; S.uid = be.uid;
-    be.subscribe(onSnap, function () { setMsg('อ่านข้อมูลกระทงไม่ได้ ลองรีเฟรชหน้านี้', 'bad'); });
-    setGate(be.note, true);
+    res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + k, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true })
+    });
+    if (!res.ok) throw new Error('auth ' + res.status);
+    d = await res.json();
+    AUTH.idToken = d.idToken; AUTH.refresh = d.refreshToken; AUTH.uid = d.localId;
+    AUTH.exp = Date.now() + Number(d.expiresIn) * 1000; authSave();
+  }
+  function ensureAuth() {
+    if (AUTH.idToken && Date.now() < AUTH.exp - 60000) return Promise.resolve();
+    if (!authP) authP = authRun().finally(function () { authP = null; });
+    return authP;
+  }
+  function authHeaders(extra) {
+    var h = extra || {}; h.Authorization = 'Bearer ' + AUTH.idToken; return h;
+  }
+
+  async function cloudAdd(it) {
+    await ensureAuth();
+    var body = { fields: {
+      uid: { stringValue: it.uid }, a: { stringValue: it.a }, b: { stringValue: it.b }, w: { stringValue: it.w },
+      h: { integerValue: String(it.h) }, t: { integerValue: String(it.t) }
+    } };
+    var res = await fetch(FS + '?documentId=' + encodeURIComponent(it.key) + '&key=' + encodeURIComponent(CONFIG.apiKey), {
+      method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('add ' + res.status);
+  }
+
+  async function cloudDel(key) {
+    await ensureAuth();
+    var res = await fetch(FS + '/' + encodeURIComponent(key) + '?key=' + encodeURIComponent(CONFIG.apiKey), { method: 'DELETE', headers: authHeaders() });
+    if (!res.ok) throw new Error('del ' + res.status);
+  }
+
+  async function refresh() {
+    try { setItems(CLOUD ? await cloudRead() : localRead()); }
+    catch (e) { setMsg('อ่านข้อมูลกระทงไม่ได้ ลองรีเฟรชหน้านี้', 'bad'); }
+  }
+
+  function myItems() { return items.filter(function (x) { return x.uid === S.uid; }); }
+
+  $('f').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (S.busy) return;
+    var a = clean($('n1').value, 20), b = clean($('n2').value, 20), w = clean($('wish').value, 60);
+    if (!a || !b) { setMsg('ใส่ชื่อให้ครบทั้งสองคนก่อนนะ', 'bad'); (a ? $('n2') : $('n1')).focus(); return; }
+    if (CLOUD) {
+      try { await ensureAuth(); S.uid = AUTH.uid; }
+      catch (err) { setMsg('เชื่อมต่อระบบไม่ได้ ตรวจว่าเปิด Anonymous Auth แล้ว (ดู README)', 'bad'); return; }
+    }
+    if (myItems().length >= MAX_EACH) { setMsg('ลอยครบ ' + MAX_EACH + ' ใบแล้ว ดึงใบเก่ากลับก่อนถึงจะลอยใบใหม่ได้', 'bad'); return; }
+    var it = { key: rid(), uid: S.uid, a: a, b: b, w: w, h: hueIdx, t: Date.now() };
+    S.busy = true; $('go').disabled = true; setMsg('');
+    if (!reduce) launched.set(it.key, Date.now());
+    try {
+      if (CLOUD) await cloudAdd(it);
+      else localWrite(localRead().concat([it]));
+      $('n1').value = ''; $('n2').value = ''; $('wish').value = '';
+      selected = it.key;
+      setItems(items.concat([it]));
+      setMsg('ลอยแล้ว ขอให้สมหวัง', 'ok');
+      $('river').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      if (CLOUD) refresh();
+    } catch (err) {
+      launched.delete(it.key); setMsg('ยังลอยไม่สำเร็จ ลองอีกครั้งนะ', 'bad');
+    } finally {
+      S.busy = false; $('go').disabled = false;
+    }
+  });
+
+  async function removeMine(key) {
+    try {
+      if (CLOUD) await cloudDel(key);
+      else localWrite(localRead().filter(function (x) { return x.key !== key; }));
+      if (selected === key) selected = null;
+      setItems(items.filter(function (x) { return x.key !== key; }));
+      setMsg('ดึงกระทงกลับแล้ว', 'ok');
+    } catch (err) { setMsg('ดึงกลับไม่สำเร็จ ลองอีกครั้งนะ', 'bad'); }
   }
 
   /* ---------- start ---------- */
+  S.uid = getUid();
+  if (!CLOUD) setGate('โหมดทดลอง: กระทงจะเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น (ถ้าจะให้เพื่อนเห็นร่วมกัน ให้แก้ไฟล์ config.js ตาม README.md)');
   renderList();
   if (window.ResizeObserver) new ResizeObserver(resize).observe($('river')); else window.addEventListener('resize', resize);
   resize();
   if (document.fonts && document.fonts.load) {
     Promise.all([document.fonts.load('500 14px "IBM Plex Sans Thai"'), document.fonts.load('400 30px Chonburi')]).then(requestDraw, requestDraw);
   }
-  init().catch(function () { setGate('เชื่อมต่อแม่น้ำไม่สำเร็จ ลองรีเฟรชหน้านี้', false); });
+  refresh();
+  if (CLOUD) ensureAuth().then(function () { S.uid = AUTH.uid; renderList(); }, function () {});
+  if (CLOUD) setInterval(function () { if (!document.hidden && !S.busy) refresh(); }, 8000);
+  else window.addEventListener('storage', refresh);
 })();
 </script>
 </body>
